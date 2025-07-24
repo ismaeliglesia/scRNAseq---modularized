@@ -2,7 +2,7 @@
 
 This repository provides a modular R toolkit for end-to-end analysis of single-cell RNA-seq data using Seurat, including:
 
-- Loading and preprocessing 10X Genomics data (Gene Expression, Antibody Capture, TCR/BCR)
+- Loading and preprocessing 10X Genomics data (Gene Expression, Antibody Capture, TCR)
 - Quality control filtering
 - SCTransform normalization with optional cell cycle correction
 - Dimensionality reduction (PCA, UMAP)
