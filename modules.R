@@ -62,12 +62,13 @@ load_RNA_data <- function(h5_path,
 
     if (!is.null(metadata_file)) {
       metadata <- read_xlsx(metadata_file)
-      if (!(sample_column_name %in% colnames(metadata))) {
-      stop(paste("Column", sample_column_name, "does not exist in metadata file."))
+      if ("Antibody Capture" %in% names(RNA.data)) {
+        if (!(sample_column_name %in% colnames(metadata))) {
+        stop(paste("Column", sample_column_name, "does not exist in metadata file."))
+        }
+        if (!(hash_column_name %in% colnames(metadata))) {
+        stop(paste("Column", hash_column_name, "does not exist in metadata file."))
       }
-      if (!(hash_column_name %in% colnames(metadata))) {
-      stop(paste("Column", hash_column_name, "does not exist in metadata file."))
-    }
       metadata <- metadata %>%
         mutate(sample_id_full_prov = paste0(.[[sample_column_name]], "_Sample", .[[hash_column_name]]))
 
@@ -78,20 +79,18 @@ load_RNA_data <- function(h5_path,
         left_join(metadata %>% select(sample_id_full_prov, patient_code), by = "sample_id_full_prov")
     
       seurat_obj <- AddMetaData(seurat_obj, metadata = cell_metadata)
-  }
-  
-  }
-  
-  if (!is.null(metadata_file)) {
-    metadata <- read_xlsx(metadata_file)
-    metadata <- metadata %>%
-      mutate(sample_id_full_prov = paste0(id_prov, "_Sample", hash))
-    seurat_obj$sample_id_full_prov <- paste0(seurat_obj$id_prov, "_", seurat_obj$hash.ID)
-    cell_metadata <- as.data.frame(seurat_obj@meta.data)
-    cell_metadata <- cell_metadata %>%
-      left_join(metadata %>% select(sample_id_full_prov, patient_code), by = "sample_id_full_prov")
+        }
+      else {
+        metadata <- metadata %>%
+          mutate(sample_id_full_prov = paste0(.[[sample_column_name]]))
+
+        seurat_obj$sample_id_full_prov <- paste0(seurat_obj$id_sample)
     
-    seurat_obj <- AddMetaData(seurat_obj, metadata = cell_metadata)
+        cell_metadata <- as.data.frame(seurat_obj@meta.data)
+        cell_metadata <- cell_metadata %>%
+          left_join(metadata %>% select(sample_id_full_prov, patient_code), by = "sample_id_full_prov")
+    
+        seurat_obj <- AddMetaData(seurat_obj, metadata = cell_metadata) }
   }
   return(seurat_obj)
 }
