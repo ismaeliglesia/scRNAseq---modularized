@@ -1,7 +1,6 @@
-# main.R
-
-R_directory <- ""  ### Choose the directory of functions
+R_directory <- ""  ### Set the project directory
 setwd(R_directory)
+project_name = "" ### Set the name of the project, i.e. scexp_2025
 
 source("utils.R")
 source("modules.R")
@@ -14,22 +13,81 @@ library(scRepertoire)
 library(cowplot)
 library(readxl)
 
-R_directory <- ""  ### Choose the directory of data
-setwd(R_directory)
-project_name <- "" ### Write the project name in a brief way, i.e., project1_2025
+# --- Load data ---
+tryCatch({
+  # Load 10X data, filter singlets, add metadata and TCR contigs if available
+  seurat_obj <- load_RNA_data(
+    h5_path = "./count/filtered_feature_bc_matrix.h5",
+    filter_singlets = TRUE,
+    aggr_dir = "./count/aggregation.csv",
+    metadata_file = "./metadata.xlsx",
+    contig_list = "./vdj/filtered_contig_annotations.csv"
+  )
+  assign(project_name, seurat_obj)
+}, error = function(e) {
+  stop("Error loading RNA data: ", e$message)
+})
 
-assign(project_name, load_RNA_data("./count/filtered_feature_bc_matrix.h5", 
-                                   filter_singlets = TRUE, 
-                                   aggr_dir = "./count/aggregation.csv", 
-                                   metadata_file = NULL,
-                                   sample_column_name = NULL,
-                                   hash_column_name = NULL,
-                                   contig_list = "./count/filtered_contig_annotations.csv"))
+# --- Quality control filtering ---
+tryCatch({
+  seurat_obj <- get(project_name)
+  seurat_obj <- qc_filtering(
+    seurat_obj = seurat_obj,
+    mito_percent_qc = 10,
+    min_genes_qc = 500,
+    max_genes_qc = 8000
+  )
+  assign(project_name, seurat_obj)
+}, error = function(e) {
+  stop("Error in QC filtering: ", e$message)
+})
 
-assign(project_name, qc_filtering(seurat_obj = get(project_name), mito_percent_qc = 10, min_genes_qc = 500, max_genes_qc = 8000))
+# --- Normalization and cell cycle scoring/regression ---
+tryCatch({
+  seurat_obj <- get(project_name)
+  seurat_obj <- normalize_SCT(
+    seurat_obj,
+    genes_to_mask = NULL,
+    cellcyclescore = TRUE,
+    cellcyclenorm = TRUE,
+    new_assay_name = "ccSCT"
+  )
+  assign(project_name, seurat_obj)
+}, error = function(e) {
+  stop("Error in normalization: ", e$message)
+})
 
-assign(project_name, normalize_SCT(get(project_name), genes_to_mask = "CD7CAR", cellcyclescore = FALSE, cellcyclenorm = FALSE, new_assay_name = "SCT"))
+# --- Dimensionality reduction (PCA + UMAP) ---
+tryCatch({
+  seurat_obj <- get(project_name)
+  seurat_obj <- create_UMAP(
+    seurat_obj,
+    automatic_npc = TRUE,
+    npcs = NULL,
+    min.dist = 0.01,
+    k.param = 300,
+    new_assay_name = "ccSCT"
+  )
+  assign(project_name, seurat_obj)
+}, error = function(e) {
+  stop("Error in UMAP creation: ", e$message)
+})
 
-assign(project_name, create_UMAP(get(project_name), automatic_npc = TRUE, npcs = NULL, min.dist = 0.01, k.param = 150))
+# --- Clustering at specified resolution ---
+tryCatch({
+  seurat_obj <- get(project_name)
+  seurat_obj <- findclusters_resolutions(
+    seurat_obj,
+    resolutions = c(1.8),
+    n.iter = 10,
+    save_plot = TRUE,
+    new_assay_name = "ccSCT"
+  )
+  assign(project_name, seurat_obj)
+}, error = function(e) {
+  stop("Error in clustering: ", e$message)
+})
 
-assign(project_name, findclusters_resolutions(get(project_name), resolutions = c(0.2, 0.6), n.iter = 10, save_plot = TRUE))
+# --- Save final Seurat object for downstream analysis ---
+saveRDS(get(project_name), file = paste0(project_name, "_final_seurat_obj.rds"))
+message("Pipeline finished successfully. Seurat object saved.")
