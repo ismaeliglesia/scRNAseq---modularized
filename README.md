@@ -18,21 +18,45 @@ Before using this toolkit, install the following R packages:
 ```R
 install.packages(c("Seurat", "dplyr", "readxl", "ggplot2", "scales", "RColorBrewer", "ComplexHeatmap"))
 remotes::install_github("ncborcherding/scRepertoire")
+```
 
+## 📂 Files
 
-## 📁 Modules
+- **modules.R**  
+  Contains reusable functions for each analysis step:  
+  - `load_RNA_data()`  
+  - `qc_filtering()`  
+  - `normalize_SCT()`  
+  - `create_UMAP()`  
+  - `findclusters_resolutions()`  
+  - `make_heatmap()`  
 
-### 1. `load_RNA_data()`
+- **main.R**  
+  Script to run the full analysis pipeline using the functions from `modules.R`. It sets working directories, loads data, runs QC, normalization, dimensionality reduction, and clustering.
+  
+- **utils.R**
+  Important utils and code for making the pipeline work.
 
-Load and preprocess gene expression, HTO, and TCR data from 10X Genomics `.h5` files.
+## 📝 How to use
 
-```R
-load_RNA_data(
-  h5_path,
-  filter_singlets = TRUE,
-  aggr_dir = NULL,
-  metadata_file = NULL,
-  contig_list = NULL,
-  sample_column_name,
-  hash_column_name
-)
+1. Clone this repository or download the scripts
+2. Prepare your project directory with the following structure:
+
+```css
+   project_folder/
+├── count/
+│   ├── filtered_feature_bc_matrix.h5
+│   ├── aggregation.csv
+├── metadata.xlsx
+├── vdj/
+│   ├── filtered_contig_annotations.csv
+├── modules.R
+├── main.R
+├── utils.R
+```
+3. Edit main.R to set the directories and project name:
+- R_directory: Absolute pathway of the folder in which the data is contained.
+- project_name: Name of the seurat_obj and the saved object (in RDS format).
+
+## 💫 Output
+The output is a .RDS file with the normalized and clustered single cell experiment.
