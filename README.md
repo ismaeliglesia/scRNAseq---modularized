@@ -54,9 +54,10 @@ remotes::install_github("ncborcherding/scRepertoire")
 ├── main.R
 ├── utils.R
 ```
-3. Edit main.R to set the directories and project name:
+3. Edit main.R to set the directories, project name and function flags:
 - R_directory: Absolute pathway of the folder in which the data is contained.
 - project_name: Name of the seurat_obj and the saved object (in RDS format).
+- Function flags: Look for all the options of each function and specify if different than default.
 
 ## 💫 Output
 The output is a .RDS file with the normalized and clustered single cell experiment.
