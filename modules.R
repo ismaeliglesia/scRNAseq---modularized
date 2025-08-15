@@ -180,28 +180,19 @@ findclusters_resolutions <- function(seurat_obj,
   return(seurat_obj)
 }
 
-
-#### This function is waiting to be optimized and simplified
 make_heatmap <- function(seurat_obj, 
-                                  markers_df, 
-                                  ident_col = "ident", 
-                                  sample_col = "sample", 
-                                  group_col = "group", 
-                                  assay = "SCT", 
-                                  slot = "data", 
-                                  top_n = 100, 
-                                  exclude_genes = NULL,
-                                  highlight_genes = NULL,
-                                  annotation_cols = c("sample", "group"),
-                                  annotation_palettes = list(),
-                                  output_file = NULL) {
-  # Set active identity
-  Idents(seurat_obj) <- ident_col
-  group <- seurat_obj[[group_col]][,1]
-  sample <- seurat_obj[[sample_col]][,1]
-  ident <- seurat_obj[[ident_col]][,1]
+                         markers_df, 
+                         split_factor = "group", # Main division. Is the top one that divides the plot in two factors, i.e. response 
+                         annotation_cols = NULL, # Secondary anotations of the plot
+                         assay = "SCT", 
+                         slot = "data", 
+                         top_n = 100, 
+                         exclude_genes = NULL,
+                         highlight_genes = NULL,
+                         annotation_palettes = list(),
+                         output_file = NULL) {
+  group <- seurat_obj[[split_factor]][, 1]
     
-  # Get top genes by expression difference
   top_genes <- markers_df %>%
     mutate(diff = abs(pct.1 - pct.2)) %>%
     mutate(gene = row.names(markers_df)) %>%
@@ -211,11 +202,9 @@ make_heatmap <- function(seurat_obj,
     pull(gene) %>%
     unique()
   
-  # Get expression matrix
   expr_matrix <- GetAssayData(seurat_obj, assay = assay, slot = slot)[top_genes, ]
   expr_matrix <- t(scale(t(as.matrix(expr_matrix))))
   
-  # Apply bold styling for highlight_genes
   all_genes <- rownames(expr_matrix)
   if (is.null(highlight_genes)) highlight_genes <- character(0)
   row_font_gp <- gpar(
@@ -224,17 +213,14 @@ make_heatmap <- function(seurat_obj,
     fontsize = 6
   )
   
-  # Define order
   column_order <- order(group, ident, sample)
   
-  # Extraer datos de anotación
-  annotation_data <- seurat_obj@meta.data[, annotation_cols, drop = FALSE]
-  annotation_data[] <- lapply(annotation_data, function(x) {
-    if (!is.factor(x)) factor(x) else x
-  })
-  
-  # Paletas automáticas si no se pasan
-  auto_pals <- lapply(annotation_data, function(x) {
+ if (!is.null(annotation_cols) && length(annotation_cols) > 0) {
+    annotation_data <- seurat_obj@meta.data[, annotation_cols, drop = FALSE]
+    annotation_data[] <- lapply(annotation_data, function(x) {
+      if (!is.factor(x)) factor(x) else x
+    })
+   auto_pals <- lapply(annotation_data, function(x) {
     lvls <- levels(x)
     n <- length(lvls)
     max_n <- brewer.pal.info["Dark2", "maxcolors"]
@@ -242,12 +228,8 @@ make_heatmap <- function(seurat_obj,
     pal <- colorRampPalette(base_pal)(n)
     setNames(pal, lvls)
     })
-  
-  # Fusionar con paletas personalizadas
-  full_palette <- modifyList(auto_pals, annotation_palettes)
-  
-  # Crear anotaciones
-  top_anno <- HeatmapAnnotation(
+   full_palette <- modifyList(auto_pals, annotation_palettes)
+   top_anno <- HeatmapAnnotation(
     df = annotation_data,
     col = full_palette,
     show_legend = rep(TRUE, length(annotation_cols)),
@@ -255,8 +237,16 @@ make_heatmap <- function(seurat_obj,
     simple_anno_size = unit(2, "mm"),
     annotation_name_gp = gpar(fontsize = 6)
   )
+
+    order_vars <- c(split_factor, annotation_cols)
+    order_vars <- unique(order_vars)
+    column_order <- do.call(order, seurat_obj@meta.data[, order_vars, drop = FALSE])
+    
+  } else {
+    top_anno <- NULL
+    column_order <- order(group)
+  }
   
-  # ---- HEATMAP ----
   ht <- Heatmap(
     matrix = expr_matrix,
     name = "Expression",
@@ -277,7 +267,6 @@ make_heatmap <- function(seurat_obj,
     use_raster = FALSE
   )
   
-  # Output
   if (!is.null(output_file)) {
     png(filename = output_file, width = 2000, height = 1400, res = 200)
     draw(ht)
@@ -287,6 +276,10 @@ make_heatmap <- function(seurat_obj,
   }
 }
 
+
+#### New coming functions
+
+# Pseudobulk + heatmap
 
 
 
