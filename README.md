@@ -16,7 +16,7 @@ This repository provides a modular R toolkit for end-to-end analysis of single-c
 Before using this toolkit, install the following R packages:
 
 ```R
-install.packages(c("Seurat", "dplyr", "readxl", "ggplot2", "scales", "RColorBrewer", "ComplexHeatmap"))
+install.packages(c("Seurat", "dplyr", "readxl", "ggplot2", "scales", "RColorBrewer", "ComplexHeatmap", "grid"))
 remotes::install_github("ncborcherding/scRepertoire")
 ```
 
